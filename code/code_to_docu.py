@@ -1,6 +1,7 @@
 import os
 import anthropic
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -55,7 +56,36 @@ def print_formatted_output(title, content):
                 print(str(item).strip())
     else:
         print(str(content).strip())
-    print(f"{'=' * 50}\n")
+    print(f"{'=' * 50}\n")    
+
+def create_directory_structure():
+    base_dir = 'results'
+    code_dir = os.path.join(base_dir, 'code')
+    docu_dir = os.path.join(base_dir, 'docu')
+    
+    os.makedirs(code_dir, exist_ok=True)
+    os.makedirs(docu_dir, exist_ok=True)
+    
+    return code_dir, docu_dir
+
+def save_to_file(content, directory, prefix):
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{prefix}_{timestamp}.txt"
+    filepath = os.path.join(directory, filename)
+    
+    with open(filepath, 'w') as file:
+        if isinstance(content, list):
+            for item in content:
+                if hasattr(item, 'text'):
+                    file.write(item.text + '\n')
+                else:
+                    file.write(str(item) + '\n')
+        elif isinstance(content, str):
+            file.write(content)
+        else:
+            file.write(str(content))
+    
+    print(f"Content saved to {filepath}")
 
 def main():
     sample_code = """
@@ -68,15 +98,18 @@ def main():
         return a - b
     """
     
+    code_dir, docu_dir = create_directory_structure()
     suggester = DocumentSuggester()
     
     print("Generating API Documentation...")
     documentation = suggester.generate_api_documentation(sample_code)
     print_formatted_output("Generated API Documentation", documentation)
+    save_to_file(documentation, docu_dir, "api_documentation")
     
     print("Generating code from API Documentation...")
     code = suggester.generate_code_from_api_documentation(documentation)
     print_formatted_output("Generated New Code", code)
+    save_to_file(code, code_dir, "generated_code")
 
 if __name__ == "__main__":
     main()
